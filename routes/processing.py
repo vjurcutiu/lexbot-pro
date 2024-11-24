@@ -47,12 +47,13 @@ def generate_and_store_embedding():
 
     try:
         # Generate embedding using OpenAI
-        response = OpenAI.embeddings.create(
+        response = client.embeddings.create(
             input=text,
             model="text-embedding-ada-002"
         )
-        embedding = response['data'][0]['embedding']
-
+        print(response)
+        embedding = response.data[0].embedding
+        
         # Store embedding in Pinecone
         index.upsert([(document_id, embedding)])
         return jsonify({"message": f"Document {document_id} stored successfully!"}), 201
@@ -66,11 +67,11 @@ def query_retrieval():
 
     try:
         # Generate query embedding using OpenAI
-        response = OpenAI.embeddings.create(
+        response = client.embeddings.create(
             input=query,
             model="text-embedding-ada-002"
         )
-        query_embedding = response['data'][0]['embedding']
+        query_embedding = response.data[0].embedding
 
         # Perform a search in Pinecone
         search_results = index.query(
@@ -95,11 +96,11 @@ def generate_response():
 
     try:
         # Generate query embedding
-        response = OpenAI.embeddings.create(
+        response = client.embeddings.create(
             input=query,
             model="text-embedding-ada-002"
         )
-        query_embedding = response['data'][0]['embedding']
+        query_embedding = response.data[0].embedding
 
         # Retrieve top documents from Pinecone
         search_results = index.query(
@@ -108,17 +109,24 @@ def generate_response():
             include_metadata=True
         )
 
-        # Concatenate retrieved documents
-        context = "\n".join([match["metadata"]["content"] for match in search_results["matches"]])
+        # Concatenate retrieved documents        
+        context = [item for match in search_results["matches"] for item in match['values']]
 
         # Query OpenAI with context
-        openai_response = OpenAI.Completion.create(
-            engine="text-davinci-003",
-            prompt=f"Context: {context}\n\nQuestion: {query}\nAnswer:",
+        openai_response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {
+                    "role": "user",
+                    "content": f"Context: {context}\n\nQuestion: {query}"
+                },
+                {"role": "system", "content": "Answer:"}
+            ],
             max_tokens=150,
             temperature=0.7
         )
-        generated_answer = openai_response.choices[0].text.strip()
+        generated_answer = openai_response.choices[0].message.content
 
         return jsonify({"response": generated_answer})
     except Exception as e:

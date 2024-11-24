@@ -1,6 +1,7 @@
 import sys
 import requests  # To send HTTP requests to Flask
 from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtCore import Qt
 from interface import Ui_MainWindow  # Import the generated UI file
 
 class MainApp(QMainWindow):
@@ -8,6 +9,9 @@ class MainApp(QMainWindow):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        # Set the window flags to create a borderless window
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
 
         # Connect button click to a method
         self.ui.pushButton.clicked.connect(self.send_data_to_backend)
