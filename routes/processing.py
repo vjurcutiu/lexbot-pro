@@ -3,8 +3,13 @@ import os
 from openai import OpenAI
 from pinecone import Pinecone, ServerlessSpec
 from dotenv import load_dotenv
+from database.models import db, File
+from datetime import datetime
+import requests
 
 processing_bp = Blueprint('processing', __name__)
+
+FILECHECK_ROUTE_URL = "http://127.0.0.1:5000/filecheck"
 
 # Load environment variables
 load_dotenv()
@@ -40,23 +45,57 @@ if INDEX_NAME not in index_names:
 index = pc.Index(INDEX_NAME)
 
 @processing_bp.route('/embed', methods=['POST'])
-def generate_and_store_embedding():
-    data = request.json
-    document_id = data.get("id")  # Unique ID for the document
-    text = data.get("text")  # Document text
-
+def generate_and_store_embeddings():
     try:
-        # Generate embedding using OpenAI
-        response = client.embeddings.create(
-            input=text,
-            model="text-embedding-ada-002"
-        )
-        print(response)
-        embedding = response.data[0].embedding
+        #Trigger the filecheck route
+        filecheck_response = requests.post(FILECHECK_ROUTE_URL)
+        if filecheck_response.status_code != 200:
+            return jsonify({"error": "Filecheck failed", "details": filecheck_response.json()}), 500
+
+
+        # Query the database for files with status 'new'
+        new_files = File.query.filter_by(status="new").all()
+        if not new_files:
+            return jsonify({"message": "No new files to process."}), 200
         
-        # Store embedding in Pinecone
-        index.upsert([(document_id, embedding)])
-        return jsonify({"message": f"Document {document_id} stored successfully!"}), 201
+        processed_files = []
+        for file_record in new_files:
+            try:
+                # Use the file name or path to determine the text content
+                text = file_record.name  # Replace with logic to extract content if needed
+
+                if not text:
+                    continue  # Skip this file if no text content is available
+
+                # Generate embedding using OpenAI
+                response = client.embeddings.create(
+                    input=text,
+                    model="text-embedding-ada-002"
+                )
+                print(response)
+                embedding = response.data[0].embedding
+        
+                # Store embedding in Pinecone
+                index.upsert([(str(file_record.id), embedding)])
+
+                # Update the file record in the database
+                file_record.status = "embedded"
+                file_record.processed_at = datetime.utcnow()
+                db.session.commit()
+
+                processed_files.append(file_record.id)
+            
+            except Exception as e:
+                # Log errors for individual file processing
+                print(f"Error processing file {file_record.id}: {e}")
+                db.session.rollback()          
+        
+        if not processed_files:
+            return jsonify({"message": "No files were successfully processed."}), 500
+
+        return jsonify({"message": f"Successfully processed files: {processed_files}"}), 201
+
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
