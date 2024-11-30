@@ -1,0 +1,59 @@
+/* General Styles */
+QMainWindow {
+    background: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 #e8f0fe,  /* Light blue at the top-left */
+        stop: 1 #ffffff   /* White at the bottom-right */
+    );
+    font-family: "Arial", sans-serif;
+}
+
+/* Chat List */
+QListWidget {
+    background-color: #ffffff;
+    border: 1px solid #d1d1d1;
+    border-radius: 10px;
+    padding: 5px;
+    font-family: "Georgia", serif;
+    font-size: 14px;
+    color: #333333;
+}
+
+/* Chat Display */
+QTextEdit {
+    background-color: #ffffff;
+    border: 1px solid #d1d1d1;
+    border-radius: 10px;
+    padding: 15px;
+    font-family: "Georgia", serif;
+    font-size: 15px;
+    color: #333333;
+}
+
+/* Input Field */
+QPlainTextEdit {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 8px;
+    font-family: "Arial", sans-serif;
+    font-size: 14px;
+    color: #333333;
+}
+
+/* Send Button */
+QPushButton {
+    background-color: #004085; /* Deep navy blue */
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-family: "Arial", sans-serif;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #0056b3;
+}
+
