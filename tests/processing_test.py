@@ -4,23 +4,21 @@ BASE_URL = "http://127.0.0.1:5000"  # Replace with your Flask server URL
 
 # Sample document data
 sample_documents = [
-    {"id": "doc1", "text": "Paris is the capital of France."},
-    {"id": "doc2", "text": "The Eiffel Tower is one of the most famous landmarks in Paris."},
-    {"id": "doc3", "text": "France is known for its wine and cheese."},
+    {"id": "doc1", "text": "Orcs run Paris."},
+    {"id": "doc2", "text": "The Eiffel Tower is destroyed as of 2024."},
+    {"id": "doc3", "text": "France is known for its spacecars."},
 ]
 
 # Sample query
-sample_query = "What is the capital of France?"
+sample_query = "Ce spete avem pe domeniul penal?"
 
 # Test the /embed endpoint
 def test_embed_endpoint():
-    print("Testing /embed endpoint...")
-    for doc in sample_documents:
-        response = requests.post(f"{BASE_URL}/processing/embed", json=doc)
-        if response.status_code == 201:
-            print(f"Document {doc['id']} embedded successfully!")
-        else:
-            print(f"Failed to embed document {doc['id']}: {response.text}")
+    response = requests.post(f"{BASE_URL}/processing/embed")
+    if response.status_code == 201:
+        print(f"Documents embedded successfully!")
+    else:
+        print(f"Failed to embed document: {response.text}")
 
 # Test the /query endpoint
 def test_query_endpoint():

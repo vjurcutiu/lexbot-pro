@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from database.models import db, File
 from datetime import datetime
 import requests
+from PyPDF2 import PdfReader
+from docx import Document
+import chardet
 
 processing_bp = Blueprint('processing', __name__)
 
@@ -59,22 +62,52 @@ def generate_and_store_embeddings():
             return jsonify({"message": "No new files to process."}), 200
         
         processed_files = []
+
         for file_record in new_files:
             try:
-                # Use the file name or path to determine the text content
-                text = file_record.name  # Replace with logic to extract content if needed
+                # Determine the file path and type
+                file_path = file_record.path
+                file_extension = os.path.splitext(file_path)[-1].lower()
 
-                if not text:
+                # Initialize variable to hold text content
+                text = ""
+
+                # Extract text based on file type
+                if file_extension == ".pdf":
+                    reader = PdfReader(file_path)
+                    text = " ".join([page.extract_text() for page in reader.pages])
+                    print(text)
+
+                elif file_extension == ".docx":
+                    doc = Document(file_path)
+                    text = " ".join([paragraph.text for paragraph in doc.paragraphs])
+                    print(text)
+
+                elif file_extension in [".txt", ".csv"]:
+                    with open(file_path, "rb") as file:
+                        # Detect encoding
+                        raw_data = file.read()
+                        result = chardet.detect(raw_data)
+                        encoding = result["encoding"]
+                        text = raw_data.decode(encoding)
+                        print(text)                    
+
+                else:
+                    print(f"Unsupported file type for: {file_path}")
+                    continue
+
+                if not text.strip():
+                    print(f"No text extracted from file: {file_path}")
                     continue  # Skip this file if no text content is available
 
                 # Generate embedding using OpenAI
                 response = client.embeddings.create(
                     input=text,
-                    model="text-embedding-ada-002"
+                    model="text-embedding-3-large"
                 )
                 print(response)
                 embedding = response.data[0].embedding
-        
+
                 # Store embedding in Pinecone
                 index.upsert([(str(file_record.id), embedding)])
 
@@ -84,11 +117,10 @@ def generate_and_store_embeddings():
                 db.session.commit()
 
                 processed_files.append(file_record.id)
-            
+
             except Exception as e:
-                # Log errors for individual file processing
-                print(f"Error processing file {file_record.id}: {e}")
-                db.session.rollback()          
+                print(f"Error processing file {file_record.path}: {e}")
+                db.session.rollback()  # Rollback database changes if there's an error        
         
         if not processed_files:
             return jsonify({"message": "No files were successfully processed."}), 500
@@ -132,41 +164,58 @@ def query_retrieval():
 def generate_response():
     data = request.json
     query = data.get("query")  # User query
+    client = OpenAI()
 
     try:
-        # Generate query embedding
-        response = client.embeddings.create(
-            input=query,
-            model="text-embedding-ada-002"
-        )
-        query_embedding = response.data[0].embedding
-
-        # Retrieve top documents from Pinecone
-        search_results = index.query(
-            vector=query_embedding,
-            top_k=3,  # Adjust for number of documents to retrieve
-            include_metadata=True
+        assistant = client.beta.assistants.create(
+        name="testbot",
+        instructions="You are an expert legal analyst. Use your knowledge base to answer questions about legal cases.",
+        model="gpt-4o-mini",
+        tools=[{"type": "file_search"}],
         )
 
-        # Concatenate retrieved documents        
-        context = [item for match in search_results["matches"] for item in match['values']]
-
-        # Query OpenAI with context
-        openai_response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {
-                    "role": "user",
-                    "content": f"Context: {context}\n\nQuestion: {query}"
-                },
-                {"role": "system", "content": "Answer:"}
-            ],
-            max_tokens=150,
-            temperature=0.7
+        assistant = client.beta.assistants.update(
+        assistant_id=assistant.id,
+        tool_resources={"file_search": {"vector_store_ids": ['vs_blMFhWfdfa27zronK3PbQDAR']}},
         )
-        generated_answer = openai_response.choices[0].message.content
 
-        return jsonify({"response": generated_answer})
+        # Create a thread and attach the file to the message
+        thread = client.beta.threads.create(
+        messages=[
+            {
+            "role": "user",
+            "content": query,
+            }
+        ]
+        )
+        
+        # The thread now has a vector store with that file in its tool resources.
+        print(thread.tool_resources.file_search)
+
+        # Use the create and poll SDK helper to create a run and poll the status of
+        # the run until it's in a terminal state.
+
+        run = client.beta.threads.runs.create_and_poll(
+            thread_id=thread.id, assistant_id=assistant.id
+        )
+
+        messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
+
+        message_content = messages[0].content[0].text
+        annotations = message_content.annotations
+        citations = []
+        for index, annotation in enumerate(annotations):
+            message_content.value = message_content.value.replace(annotation.text, f"[{index}]")
+            if file_citation := getattr(annotation, "file_citation", None):
+                cited_file = client.files.retrieve(file_citation.file_id)
+                citations.append(f"[{index}] {cited_file.filename}")
+        
+        print(message_content.value)
+        print("\n".join(citations))
+
+        return jsonify({
+            "response": message_content.value,
+            "citations": citations
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

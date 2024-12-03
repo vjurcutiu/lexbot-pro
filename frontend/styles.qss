@@ -22,7 +22,7 @@ QListWidget {
 /* Chat Display */
 QTextEdit {
     background-color: #ffffff;
-    border: 1px solid #d1d1d1;
+    border: 0px solid #d1d1d1;
     border-radius: 10px;
     padding: 15px;
     font-family: "Georgia", serif;
@@ -57,3 +57,126 @@ QPushButton:hover {
     background-color: #0056b3;
 }
 
+QWidget {
+    background-color: #101011;
+    color: white;
+}
+
+QPushButton {
+    background-color: #3b4048;
+    border: none;
+    color: white;
+    font-size: 14px;
+}
+
+QPushButton:hover {
+    background-color: #50565e;
+}
+
+QLabel {
+    font-size: 16px;
+}
+
+#MainWindow {
+    background-color: #101011;
+    border-radius: 15px; /* Adjust radius for rounded corners */
+}
+
+#TitleBar {
+    background-color: #101011;
+    border-top-left-radius: 15px; /* Rounded corners for the top bar */
+    border-top-right-radius: 15px;
+}
+
+QPushButton {
+    background-color: #101011;
+    border: none;
+    color: white;
+    font-size: 14px;
+    margin: 0;
+    padding: 5px;
+}
+
+QPushButton:hover {
+    background-color: #50565e;
+}
+
+QLabel {
+    color: white;
+    font-size: 16px;
+}
+
+/* Vertical scrollbar for QPlainTextEdit */
+QPlainTextEdit QScrollBar:vertical {
+    border: none;
+    background: #282c34; /* Dark background color */
+    width: 12px;
+    margin: 0px;
+    opacity: 1;
+}
+
+/* Handle of the scrollbar (draggable part) */
+QPlainTextEdit QScrollBar::handle:vertical {
+    background: #888; /* Handle color */
+    min-height: 20px;
+    border-radius: 6px;
+}
+
+/* Handle hover state */
+QPlainTextEdit QScrollBar::handle:vertical:hover {
+    background: #555; /* Handle color on hover */
+}
+
+/* Handle pressed state */
+QPlainTextEdit QScrollBar::handle:vertical:pressed {
+    background: #333; /* Handle color when clicked */
+}
+
+/* Remove arrows (optional, if not needed) */
+QPlainTextEdit QScrollBar::add-line:vertical,
+QPlainTextEdit QScrollBar::sub-line:vertical {
+    background: none;
+    height: 0px;
+}
+
+/* Optional: Style horizontal scrollbar similarly */
+QPlainTextEdit QScrollBar:horizontal {
+    border: none;
+    background: #282c34; /* Dark background color */
+    height: 12px;
+    margin: 0px;
+}
+
+QPlainTextEdit QScrollBar::handle:horizontal {
+    background: #888;
+    min-width: 20px;
+    border-radius: 6px;
+}
+
+QPlainTextEdit QScrollBar::handle:horizontal:hover {
+    background: #555;
+}
+
+QPlainTextEdit QScrollBar::handle:horizontal:pressed {
+    background: #333;
+}
+
+QPlainTextEdit QScrollBar::add-line:horizontal,
+QPlainTextEdit QScrollBar::sub-line:horizontal {
+    background: none;
+    width: 0px;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+QPlainTextEdit {
+    background: #282c34;
+}
+
+
+
+QPlainTextEdit {
+    background: #101011;
+}
