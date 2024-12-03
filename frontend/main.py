@@ -1,50 +1,54 @@
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QPlainTextEdit, QScrollArea, QLabel, QFrame
+    QPushButton, QPlainTextEdit, QScrollArea, QLabel, QFrame    
 )
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, QTimer
+from PySide6.QtGui import QIcon
 from datetime import datetime
 import requests
 import sys
 import os
+import concurrent.futures
 
 
 class ChatBubble(QWidget):
     def __init__(self, message, is_user=False, parent_width=800):
         super().__init__()
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(10, 5, 10, 5)
 
         # Align the bubble based on user or bot
         if is_user:
-            layout.setAlignment(Qt.AlignRight)
+            self.layout.setAlignment(Qt.AlignRight)
             bubble_color = "#0078D7"  # User message color
             text_color = "white"
         else:
-            layout.setAlignment(Qt.AlignLeft)
+            self.layout.setAlignment(Qt.AlignLeft)
             bubble_color = "#E5E5EA"  # Bot message color
             text_color = "black"
 
-        # Calculate the fixed width (40% of the parent width)
-        bubble_width = int(parent_width * 0.4)
+        # Calculate the fixed width (60% of the parent width)
+        self.bubble_width = int(parent_width * 0.6)
 
         # Bubble label with dynamic vertical resizing
-        bubble_label = QLabel(message)
-        bubble_label.setStyleSheet(f"""
+        self.bubble_label = QLabel(message)
+        self.bubble_label.setStyleSheet(f"""
             background-color: {bubble_color};
             color: {text_color};
             border-radius: 10px;
             padding: 10px;
         """)
-        bubble_label.setWordWrap(True)  # Enable text wrapping
-        bubble_label.setFixedWidth(bubble_width)  # Set fixed width
-
-        # Align text within the bubble
-        bubble_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.bubble_label.setWordWrap(True)  # Enable text wrapping
+        self.bubble_label.setFixedWidth(self.bubble_width)  # Set fixed width
+        self.bubble_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         # Add label to layout
-        layout.addWidget(bubble_label)
+        self.layout.addWidget(self.bubble_label)
+
+    def set_message(self, message):
+        """Update the message text for the bubble."""
+        self.bubble_label.setText(message)
 
 
 
@@ -67,9 +71,14 @@ class ChatApp(QMainWindow):
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(5, 0, 5, 5)  # No margins for rounded corners
 
+        self.executor = concurrent.futures.ThreadPoolExecutor()
+
         self.create_title_bar(main_layout)
         self.create_main_content(main_layout)
         self.load_styles()
+
+        initial_message = "Welcome to LexBot Pro! Ask me anything."
+        self.add_message(initial_message, is_user=False)
 
     def create_title_bar(self, main_layout):
         title_bar = QWidget()
@@ -80,17 +89,28 @@ class ChatApp(QMainWindow):
         self.title_label = QLabel("LexBot Pro")
         self.title_label.setAlignment(Qt.AlignCenter)
 
-        self.minimize_button = QPushButton("-")
+        # Load icons
+        minimize_icon = QIcon("static/icons/minimize4.png")
+        maximize_icon = QIcon("static/icons/maximize3.png")
+        close_icon = QIcon("static/icons/close2.png")
+
+        # Minimize button
+        self.minimize_button = QPushButton()
+        self.minimize_button.setIcon(minimize_icon)
         self.minimize_button.clicked.connect(self.showMinimized)
-        self.minimize_button.setFixedWidth(40)
+        self.minimize_button.setFixedSize(40, 40)
 
-        self.maximize_button = QPushButton("⬜")
+        # Maximize button
+        self.maximize_button = QPushButton()
+        self.maximize_button.setIcon(maximize_icon)
         self.maximize_button.clicked.connect(self.toggle_maximize)
-        self.maximize_button.setFixedWidth(40)
+        self.maximize_button.setFixedSize(40, 40)
 
-        self.close_button = QPushButton("×")
+        # Close button
+        self.close_button = QPushButton()
+        self.close_button.setIcon(close_icon)
         self.close_button.clicked.connect(self.close_application)
-        self.close_button.setFixedWidth(40)
+        self.close_button.setFixedSize(40, 40)
 
         title_layout.addWidget(self.title_label)
         title_layout.addWidget(self.minimize_button)
@@ -156,30 +176,46 @@ class ChatApp(QMainWindow):
     def send_data_to_backend(self):
         user_input = self.input_field.toPlainText().strip()
         if not user_input:
-            self.add_message("You: (Empty message)", "warning")
+            self.add_message("You: (Empty message)", is_user=True)
             return
 
-        self.add_message(f"You: {user_input}", is_user=True)
+        # Add the user's message immediately
+        self.add_message(user_input, is_user=True)
+
+        # Add a loading bubble for the AI response
+        loading_bubble = self.add_message("Typing...", is_user=False, is_loading=True)
 
         payload = {"query": user_input}
         self.input_field.clear()
 
-        try:
-            response = requests.post("http://127.0.0.1:5000/processing/generate", json=payload)
-            if response.status_code == 200:
-                result = response.json()
-                bot_message = result.get("response", "(No response received)")
-                self.add_message(bot_message, is_user=False)
-            else:
-                self.add_message(f"Error: Backend responded with status {response.status_code}", is_user=False)
-        except Exception as e:
-            self.add_message(f"Connection error: {e}", is_user=False)
+        # Function to handle the backend call
+        def backend_call():
+            try:
+                response = requests.post("http://127.0.0.1:5000/processing/generate", json=payload)
+                if response.status_code == 200:
+                    result = response.json()
+                    return result.get("response", "(No response received)")
+                else:
+                    return f"Error: {response.status_code}"
+            except Exception as e:
+                return f"Connection error: {e}"
 
-    def add_message(self, message, is_user):
-        bubble = ChatBubble(message, is_user)
+        # Function to update the UI with the response
+        def handle_response(future):
+            bot_message = future.result()
+            loading_bubble.set_message(bot_message)  # Update the loading bubble
+
+        # Submit the backend call to the thread pool and handle the result
+        future = self.executor.submit(backend_call)
+        future.add_done_callback(handle_response)
+
+    def add_message(self, message, is_user, is_loading=False):
+        bubble = ChatBubble("Typing..." if is_loading else message, is_user, parent_width=self.width())
         self.messages_layout.addWidget(bubble)
         # Auto-scroll to the bottom
         self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
+        return bubble  # Return the bubble for later updates if needed
+
 
 
 class ChatInputField(QPlainTextEdit):
