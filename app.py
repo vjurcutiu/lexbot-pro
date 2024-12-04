@@ -9,6 +9,9 @@ from routes.processing import processing_bp
 from database.database import close_db
 from database.models import db, File
 
+from openai import OpenAI
+
+
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -21,6 +24,21 @@ db.init_app(app)
 app.register_blueprint(filecheck_bp, url_prefix='/filecheck')
 app.register_blueprint(chat_bp, url_prefix='/chat')
 app.register_blueprint(processing_bp, url_prefix='/processing')
+
+client = OpenAI()
+
+assistant = client.beta.assistants.create(
+        name="testbot",
+        instructions="You are an expert legal analyst. Use your knowledge base to answer questions about legal cases.",
+        model="gpt-4o-mini",
+        tools=[{"type": "file_search"}],
+        )
+
+assistant = client.beta.assistants.update(
+        assistant_id=assistant.id,
+        tool_resources={"file_search": {"vector_store_ids": ['vs_blMFhWfdfa27zronK3PbQDAR']}},
+        )
+
 
 @app.route('/')
 def index():
