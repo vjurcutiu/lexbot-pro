@@ -54,5 +54,5 @@ class AppController(QMainWindow):
         )
 
     def send_data_to_backend(self, user_message):
-        """Delegate the message handling to the MessagingHandler."""
+        """Send the user's message to the backend."""
         self.messaging_handler.send_data_to_backend(user_message)

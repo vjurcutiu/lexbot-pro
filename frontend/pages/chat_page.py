@@ -43,13 +43,11 @@ class ChatPage(QWidget):
         self.add_message("Welcome to LexBot Pro! Ask me anything.", is_user=False)
 
     def add_message(self, message, is_user, is_loading=False, citations=None):
-        """Add a chat message bubble."""
-        print("Citations passed to ChatBubble:", citations)
         bubble = ChatBubble("Typing..." if is_loading else message, citations=citations, is_user=is_user)
         self.messages_layout.addWidget(bubble)
-        # Auto-scroll to the bottom
         self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
         return bubble
+
 
     def handle_message_submitted(self, message):
         """Handle message submission from the input field."""

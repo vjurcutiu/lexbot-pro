@@ -35,17 +35,21 @@ class ChatBubble(QWidget):
         self.layout.addWidget(self.bubble_label)
 
         # Citations (optional)
-        if citations:
+        if citations:                    
             citations_text = "\n".join(f"[{i+1}] {citation}" for i, citation in enumerate(citations))
             self.citations_label = QLabel(citations_text)
             self.citations_label.setStyleSheet("color: gray; font-size: 12px; margin-top: 5px;")
             self.citations_label.setWordWrap(True)
             self.layout.addWidget(self.citations_label)
 
-    def set_message(self, message, citations=None):
-        """Update the message and citations."""
-        self.bubble_label.setText(message)
-        if citations and hasattr(self, "citations_label"):
+    def set_message(self, message, citations):
+        """Update the message and citations."""        
+
+        if citations:
             citations_text = "\n".join(f"[{i+1}] {citation}" for i, citation in enumerate(citations))
-            self.citations_label.setText(citations_text)
+            package = message + citations_text
+            self.bubble_label.setText(package)
+        else:
+            self.bubble_label.setText(message)
+
 

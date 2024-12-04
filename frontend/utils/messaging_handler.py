@@ -17,7 +17,6 @@ class MessagingHandler:
     def send_data_to_backend(self, user_message):
         """
         Handle sending a message to the backend and updating the UI.
-
         Args:
             user_message (str): The user's message.
         """
@@ -27,26 +26,27 @@ class MessagingHandler:
         # Add a loading bubble for the AI response
         loading_bubble = self.on_message("Typing...", is_user=False, is_loading=True)
 
-        # Define the backend call
         def backend_call():
+            """Perform the backend request."""
             try:
                 response = requests.post(self.backend_url, json={"query": user_message})
                 if response.status_code == 200:
                     data = response.json()
-                    print("Backend response:", data)  # Debug statement
-                    return data.get("response", ""), data.get("citations", [])
+                    return data
                 else:
                     return f"Error: {response.status_code}", []
             except Exception as e:
                 return f"Connection error: {e}", []
 
-        # Define response and error handlers
         def handle_response(future):
             try:
-                bot_message, citations = future.result()
-                print("Citations from backend:", citations)  # Debug statement
+                data = future.result()  # Now receives the entire JSON object
+                print("Backend data received:", data)  # Debug
+                bot_message = data.get("response", "")
+                citations = data.get("citations", [])
                 loading_bubble.set_message(bot_message, citations)
             except Exception as e:
+                print(f"Error updating message: {e}")
                 loading_bubble.set_message(f"Error: {str(e)}")
 
         # Execute the backend call
