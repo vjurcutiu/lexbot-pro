@@ -9,6 +9,7 @@ import requests
 from PyPDF2 import PdfReader
 from docx import Document
 import chardet
+from config import client, assistant
 
 processing_bp = Blueprint('processing', __name__)
 
@@ -162,23 +163,14 @@ def query_retrieval():
     
 @processing_bp.route('/generate', methods=['POST'])
 def generate_response():
+    if not client or not assistant:
+        return jsonify({"error": "Assistant is not initialized. Please contact the administrator."}), 500
+
     data = request.json
     query = data.get("query")  # User query
-    client = OpenAI()
+    
 
     try:
-        assistant = client.beta.assistants.create(
-        name="testbot",
-        instructions="You are an expert legal analyst. Use your knowledge base to answer questions about legal cases.",
-        model="gpt-4o-mini",
-        tools=[{"type": "file_search"}],
-        )
-
-        assistant = client.beta.assistants.update(
-        assistant_id=assistant.id,
-        tool_resources={"file_search": {"vector_store_ids": ['vs_blMFhWfdfa27zronK3PbQDAR']}},
-        )
-
         # Create a thread and attach the file to the message
         thread = client.beta.threads.create(
         messages=[
