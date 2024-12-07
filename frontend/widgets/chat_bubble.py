@@ -12,11 +12,11 @@ class ChatBubble(QWidget):
         # Align the bubble
         if is_user:
             self.layout.setAlignment(Qt.AlignRight)
-            bubble_color = "#0078D7"  # User message color
+            bubble_color = "#2F2F2F"  # User message color
             text_color = "white"
         else:
             self.layout.setAlignment(Qt.AlignLeft)
-            bubble_color = "#E5E5EA"  # Bot message color
+            bubble_color = "#F1F1F1"  # Bot message color
             text_color = "black"
 
         # Calculate the fixed width (60% of the parent width)

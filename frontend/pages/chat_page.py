@@ -30,12 +30,12 @@ class ChatPage(QWidget):
         # Input area
         input_layout = QHBoxLayout()
         self.input_field = ChatInputField()
+        self.input_field.setObjectName('InputField')
         self.input_field.messageSubmitted.connect(self.handle_message_submitted)  # Connect signal
 
         self.send_button = QPushButton("Send")
         self.send_button.clicked.connect(self.handle_send_button_clicked)
         input_layout.addWidget(self.input_field)
-        input_layout.addWidget(self.send_button)
 
         layout.addLayout(input_layout)
 

@@ -17,7 +17,9 @@ class TitleBar(QWidget):
 
         # Title label
         self.title_label = QLabel("LexBot Pro")
-        self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setObjectName('TitleLabel')
+        self.title_label.setAlignment(Qt.AlignLeft)
+        self.title_label.setAlignment(Qt.AlignVCenter)
 
         # Load icons
         minimize_icon = QIcon("static/icons/minimize4.png")
@@ -39,6 +41,7 @@ class TitleBar(QWidget):
         # Close button
         self.close_button = QPushButton()
         self.close_button.setIcon(close_icon)
+        self.close_button.setObjectName('CloseButton')
         self.close_button.clicked.connect(self.parent.close)
         self.close_button.setFixedSize(40, 40)
 

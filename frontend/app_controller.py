@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QStackedWidget, QWidget
+from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QStackedWidget, QWidget, QGraphicsDropShadowEffect
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 
 from pages.chat_page import ChatPage
 
@@ -8,17 +9,14 @@ from widgets.title_bar import TitleBar
 from utils.messaging_handler import MessagingHandler
 
 import concurrent.futures
-import requests
-
 
 class AppController(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("LexBot Pro")
         self.setGeometry(100, 100, 800, 600)
-        self.setWindowFlag(Qt.FramelessWindowHint)
-        self.setWindowFlag(Qt.Window)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setWindowFlag(Qt.FramelessWindowHint)  # Frameless for custom styling
+        self.setAttribute(Qt.WA_TranslucentBackground)  # Allow translucent background
 
         # Executor for threading
         self.executor = concurrent.futures.ThreadPoolExecutor()
@@ -27,6 +25,13 @@ class AppController(QMainWindow):
         central_widget = QWidget()
         central_widget.setObjectName("MainWindow")
         self.setCentralWidget(central_widget)
+
+        # Apply shadow effect to the central widget
+        shadow_effect = QGraphicsDropShadowEffect(self)
+        shadow_effect.setBlurRadius(30)  # Softness of the shadow
+        shadow_effect.setColor(QColor(0, 0, 0, 75))
+        shadow_effect.setOffset(2, 10)  # Centered shadow
+        central_widget.setGraphicsEffect(shadow_effect)
 
         # Main layout
         main_layout = QVBoxLayout(central_widget)
